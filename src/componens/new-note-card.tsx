@@ -1,13 +1,15 @@
 import { X } from "lucide-react";
 import * as dailog from "@radix-ui/react-dialog";
 import { ChangeEvent, FormEvent, useState } from "react";
-import {toast} from 'sonner'
+import { toast } from "sonner";
+import { set } from "date-fns";
 
 interface NewNoteCardProps {
   onNoteCreated: (content: string) => void;
 }
 
-export function NewNoteCard({onNoteCreated}: NewNoteCardProps) {
+export function NewNoteCard({ onNoteCreated }: NewNoteCardProps) {
+  const [isRecording, setIsRecording] = useState(false);
   const [shouldShowOnboarding, setShoulShowOnboarding] = useState(true);
   const [content, setContent] = useState("");
 
@@ -19,22 +21,64 @@ export function NewNoteCard({onNoteCreated}: NewNoteCardProps) {
     setContent(event.target.value);
     if (event.target.value === "") {
       setShoulShowOnboarding(true);
-    }   
+    }
   }
-
 
   function handleSaveNote(event: FormEvent) {
     event.preventDefault();
-    
-    if (content === "") {
-      return
-    } 
-    onNoteCreated(content);
 
+    if (content === "") {
+      return;
+    }
+    onNoteCreated(content);
 
     setContent("");
     setShoulShowOnboarding(true);
-    toast.success('Nota salva com sucesso') 
+    toast.success("Nota salva com sucesso");
+  }
+
+  function handleStartRecordin() {
+    const isSpeechRecognitionAPIAvailable =
+      "SpeechRecognition" in window || "webkitSpeechRecognition" in window;
+
+    if (!isSpeechRecognitionAPIAvailable) {
+      toast.error(
+        "Seu navegador não suporta a funcionalidade de gravação de áudio"
+      );
+      return;
+    }
+
+    setIsRecording(true);
+    setShoulShowOnboarding(false);
+
+    const SpeechRecognitionAPI =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    const speechRecognition = new SpeechRecognitionAPI();
+
+    speechRecognition.lang = "pt-BR";
+    speechRecognition.continuous = true;
+    speechRecognition.maxAlternatives = 1;
+    speechRecognition.interimResults = true;
+
+    speechRecognition.onresult = (event) => {
+      const transcript = Array.from(event.results).reduce((text, result) => {
+        return text.concat(result[0].transcript);
+      }, "");
+
+      setContent(transcript);
+    };
+
+    speechRecognition.onerror = (event) => {
+      console.error(event.error);
+      toast.error("Erro ao gravar o áudio");
+    };
+
+    speechRecognition.start();
+  }
+
+  function handleStopRecording() {
+    setIsRecording(false);
   }
 
   return (
@@ -57,42 +101,56 @@ export function NewNoteCard({onNoteCreated}: NewNoteCardProps) {
             <X className="size-5" />
           </dailog.Close>
 
-          <form onSubmit={handleSaveNote}  className="flex-1 flex flex-col"> 
+          <form onSubmit={handleSaveNote} className="flex-1 flex flex-col">
             <div className="flex flex-1 flex-col gap-3 p-5">
-                <span className="text-sm font-medium text-slate-300">
+              <span className="text-sm font-medium text-slate-300">
                 Adicionar nota
-                </span>
+              </span>
 
-                {shouldShowOnboarding ? (
+              {shouldShowOnboarding ? (
                 <p className="text-sm leading-6 text-slate-400">
-                    Comece{" "}
-                    <button className="font-medium text-lime-400 hover:underline">
+                  Comece{" "}
+                  <button
+                    onClick={handleStartRecordin}
+                    className="font-medium text-lime-400 hover:underline"
+                  >
                     gravando uma nota
-                    </button>{" "}
-                    em áudio ou se preferir{" "}
-                    <button
+                  </button>
+                  em áudio ou se preferir{" "}
+                  <button
                     onClick={handleStartEditor}
                     className="font-medium text-lime-400 hover:underline"
-                    >
+                  >
                     utilize apenas texto
-                    </button>
+                  </button>
                 </p>
-                ) : (
-                <textarea autoFocus className="text-sm leading-6 text-slate-400 bg-transparent resize-none flex-1 outline-none" 
-                onChange={handleContentChange}
-                
-                value={content} 
+              ) : (
+                <textarea
+                  autoFocus
+                  className="text-sm leading-6 text-slate-400 bg-transparent resize-none flex-1 outline-none"
+                  onChange={handleContentChange}
+                  value={content}
                 />
-                )}
+              )}
             </div>
 
-          
-          <button
-            type="submit"
-            className="w-full bg-lime-400 py-4 text-center text-sm text-lime-950 outline-none font-medium hover:bg-lime-500 transition-colors "
-          >
-            Salva nota
-          </button>
+            {isRecording ? (
+              <button
+                type="button"
+                onClick={handleStopRecording}
+                className="w-full flex items-center justify-center gap-2 bg-slate-900 py-4 text-center text-sm text-slate-300 outline-none font-medium hover:bg-slate-100 transition-colors "
+              >
+                <div className="size-3 rounded-full bg-red-500 animate-pulse" />
+                Gravando! (clique p/ parar)
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className="w-full bg-lime-400 py-4 text-center text-sm text-lime-950 outline-none font-medium hover:bg-lime-500 transition-colors "
+              >
+                Salva nota
+              </button>
+            )}
           </form>
         </dailog.Content>
       </dailog.Portal>
