@@ -2,11 +2,11 @@ import { X } from "lucide-react";
 import * as dailog from "@radix-ui/react-dialog";
 import { ChangeEvent, FormEvent, useState } from "react";
 import { toast } from "sonner";
-import { set } from "date-fns";
-
 interface NewNoteCardProps {
   onNoteCreated: (content: string) => void;
 }
+
+let speechRecognition: SpeechRecognition | null = null;
 
 export function NewNoteCard({ onNoteCreated }: NewNoteCardProps) {
   const [isRecording, setIsRecording] = useState(false);
@@ -54,7 +54,7 @@ export function NewNoteCard({ onNoteCreated }: NewNoteCardProps) {
     const SpeechRecognitionAPI =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    const speechRecognition = new SpeechRecognitionAPI();
+    speechRecognition = new SpeechRecognitionAPI();
 
     speechRecognition.lang = "pt-BR";
     speechRecognition.continuous = true;
@@ -79,6 +79,10 @@ export function NewNoteCard({ onNoteCreated }: NewNoteCardProps) {
 
   function handleStopRecording() {
     setIsRecording(false);
+
+    if (speechRecognition !== null) {
+      speechRecognition.stop();
+    }
   }
 
   return (
@@ -96,7 +100,7 @@ export function NewNoteCard({ onNoteCreated }: NewNoteCardProps) {
 
       <dailog.Portal>
         <dailog.Overlay className="inset-0 fixed bg-black/50" />
-        <dailog.Content className="fixed  overflow-hidden left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 max-w-[640px] w-full h-[60vh] bg-slate-700 rounded-md flex flex-col outline-none">
+        <dailog.Content className="fixed  overflow-hidden inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-y-1/2 md:-translate-x-1/2 md:max-w-[640px] w-full md:h-[60vh] bg-slate-700 md:rounded-md flex flex-col outline-none">
           <dailog.Close className="absolute right-0 top-0 bg-slate-800 p-1.5 text-slate-400 hover:text-slate-100">
             <X className="size-5" />
           </dailog.Close>
@@ -112,14 +116,14 @@ export function NewNoteCard({ onNoteCreated }: NewNoteCardProps) {
                   Comece{" "}
                   <button
                     onClick={handleStartRecordin}
-                    className="font-medium text-lime-400 hover:underline"
+                    className="font-medium text-lime-300 hover:underline"
                   >
-                    gravando uma nota
+                    gravando uma nota{" "}
                   </button>
-                  em áudio ou se preferir{" "}
+                  {" "}em áudio ou se preferir{" "}
                   <button
                     onClick={handleStartEditor}
-                    className="font-medium text-lime-400 hover:underline"
+                    className="font-medium text-lime-300 hover:underline"
                   >
                     utilize apenas texto
                   </button>
